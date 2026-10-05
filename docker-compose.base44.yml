@@ -1,0 +1,15 @@
+services:
+  web:
+    image: nginx:alpine
+    restart: on-failure
+    ports:
+      - "3000:80"
+    volumes:
+      - ./:/usr/share/nginx/html
+    command: ["sh", "-c", "chmod 755 /usr/share/nginx/html && cp '/usr/share/nginx/html/faktur_rs_padi (2).html' /usr/share/nginx/html/index.html && exec nginx -g 'daemon off;'"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
