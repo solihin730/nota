@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="theme-color" content="#0f766e">
+<title>Absensi Siswa - MDTM</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.0/jspdf.plugin.autotable.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+  body { background: #f0f4f8; color: #222; padding-bottom: 80px; }
+  header { background: linear-gradient(135deg,#0f766e,#14b8a6); color:white; padding:16px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,.1); }
+  header h1 { font-size: clamp(1.1rem, 4vw, 1.3rem); }
+  header p { font-size: .85rem; opacity:.9; margin-top:4px; }
+  nav { display:flex; background:white; position:sticky; top:0; z-index:10; box-shadow:0 2px 4px rgba(0,0,0,.08); }
+  nav button { flex:1; padding:14px 8px; min-height:52px; border:none; background:white; font-size:clamp(.75rem,2.5vw,.85rem); cursor:pointer; border-bottom:3px solid transparent; font-weight:600; color:#555; -webkit-tap-highlight-color: transparent; transition: background .15s; }
+  nav button:active { background:#f0fdfa; }
+  nav button.active { color:#0f766e; border-color:#0f766e; background:#f0fdfa; }
+  .container { padding: 16px; max-width: 800px; margin: auto; }
+  .card { background:white; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  .card h2 { font-size:clamp(.95rem,3vw,1rem); margin-bottom:12px; color:#333; }
+  input, select { width:100%; padding:12px; min-height:46px; border:1px solid #ddd; border-radius:8px; font-size:16px; margin-bottom:8px; -webkit-appearance: none; appearance: none; }
+  select { background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center; padding-right:36px; }
+  button.btn { background:#0f766e; color:white; border:none; padding:12px 16px; min-height:46px; border-radius:8px; cursor:pointer; font-size:.95rem; font-weight:600; -webkit-tap-highlight-color: transparent; transition: background .15s; }
+  button.btn:active { background:#0d6e66; }
+  button.btn:hover { background:#0d6e66; }
+  button.btn-danger { background:#ef4444; }
+  button.btn-danger:active { background:#dc2626; }
+  button.btn-success { background:#10b981; }
+  button.btn-success:active { background:#059669; }
+  button.btn-wa { background:#25D366; }
+  button.btn-wa:active { background:#1da851; }
+  .row { display:flex; gap:8px; }
+  .row > * { flex:1; }
+  table { width:100%; border-collapse:collapse; font-size:.85rem; }
+  th, td { padding:10px 8px; text-align:left; border-bottom:1px solid #eee; }
+  th { background:#f9fafb; font-weight:600; color:#555; white-space:nowrap; }
+  td { word-break:break-word; }
+  
+  /* TABEL SCROLL WRAPPER */
+  .table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .table-wrap table { min-width: 360px; }
+  
+  /* TOMBOL STATUS YANG DIPERBESAR */
+  .status-btns { display:flex; gap:6px; }
+  .status-btn { 
+    width:44px; 
+    height:44px; 
+    border-radius:8px; 
+    border:2px solid transparent; 
+    cursor:pointer; 
+    font-weight:bold; 
+    color:white; 
+    font-size:1rem;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .status-btn:active { transform: scale(0.95); }
+  .s-H { background:#10b981; }
+  .s-I { background:#3b82f6; }
+  .s-S { background:#f59e0b; }
+  .s-A { background:#ef4444; }
+  .status-btn.selected { 
+    border-color:#222; 
+    transform:scale(1.1); 
+    box-shadow:0 0 0 2px white, 0 0 0 4px #222;
+    font-size:1.1rem;
+  }
+  
+  .legend { display:flex; gap:8px; flex-wrap:wrap; font-size:.8rem; margin-bottom:12px; }
+  .legend span { padding:4px 8px; border-radius:12px; color:white; font-weight:600; }
+  .tab { display:none; }
+  .tab.active { display:block; }
+  .stat-box { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:12px; }
+  .stat { background:#f9fafb; padding:10px; border-radius:8px; text-align:center; }
+  .stat .num { font-size:1.3rem; font-weight:bold; color:#0f766e; }
+  .stat .lbl { font-size:.75rem; color:#666; }
+  .empty { text-align:center; padding:20px; color:#999; font-style:italic; }
+  .del-btn { background:#fee2e2; color:#dc2626; border:none; padding:8px 12px; min-height:36px; border-radius:6px; cursor:pointer; font-size:.85rem; -webkit-tap-highlight-color: transparent; }
+  .del-btn:active { background:#fecaca; }
+  .edit-btn { background:#dbeafe; color:#2563eb; border:none; padding:8px 12px; min-height:36px; border-radius:6px; cursor:pointer; font-size:.85rem; margin-right:4px; -webkit-tap-highlight-color: transparent; }
+  .edit-btn:active { background:#bfdbfe; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:.75rem; font-weight:600; }
+  .badge-L { background:#dbeafe; color:#1d4ed8; }
+  .badge-P { background:#fce7f3; color:#be185d; }
+  .info-bar { background:#fef3c7; border-left:4px solid #f59e0b; padding:10px; border-radius:8px; margin-bottom:12px; font-size:.85rem; }
+  
+  /* ALTERNATIF: DROPDOWN UNTUK INPUT */
+  .status-select {
+    width:100%;
+    padding:8px;
+    border-radius:6px;
+    border:1px solid #ddd;
+    font-size:.9rem;
+    font-weight:600;
+  }
+
+  /* ── RESPONSIVE: MOBILE ── */
+  @media (max-width: 600px) {
+    body { padding-bottom: 100px; }
+    .container { padding: 12px; }
+    .card { padding: 14px; border-radius:10px; }
+    header { padding: 14px 12px; }
+    nav button { padding:12px 4px; min-height:56px; font-size:.78rem; }
+    .status-btn { width:48px; height:48px; font-size:1.1rem; }
+    .status-btn.selected { font-size:1.2rem; }
+    .stat-box { grid-template-columns:repeat(2,1fr); gap:8px; }
+    .stat .num { font-size:1.5rem; }
+    .stat .lbl { font-size:.7rem; }
+    .legend { font-size:.75rem; }
+    .legend span { padding:5px 10px; }
+    .edit-btn, .del-btn { padding:10px 14px; min-height:40px; font-size:.85rem; }
+    .row { gap:8px; }
+  }
+
+  /* ── RESPONSIVE: PC / LARGE ── */
+  @media (min-width: 769px) {
+    .container { max-width: 800px; }
+    .stat-box { grid-template-columns:repeat(4,1fr); }
+    table { font-size:.9rem; }
+    th, td { padding:10px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1> Absensi Siswa - MDTM</h1>
+  <p id="tanggalHariIni"></p>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('siswa',this)">👥 Siswa</button>
+  <button onclick="showTab('absen',this)">✅ Absen</button>
+  <button onclick="showTab('rekap',this)">📊 Rekap</button>
+  <button onclick="showTab('pdf',this)">📄 PDF</button>
+</nav>
+
+<div class="container">
+
+  <!-- TAB SISWA -->
+  <div id="siswa" class="tab active">
+    <div class="card">
+      <h2>Tambah / Edit Siswa</h2>
+      <input type="hidden" id="editId">
+      <input id="namaSiswa" placeholder="Nama siswa">
+      <div class="row">
+        <input id="kelasSiswa" placeholder="Kelas (mis. 2A)">
+        <select id="jkSiswa">
+          <option value="L">Laki-laki (L)</option>
+          <option value="P">Perempuan (P)</option>
+        </select>
+      </div>
+      <div class="row">
+        <button class="btn" onclick="simpanSiswa()" id="btnSimpan">+ Tambah Siswa</button>
+        <button class="btn btn-danger" onclick="batalEdit()" id="btnBatal" style="display:none;">Batal</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Daftar Siswa (<span id="jmlSiswa">0</span>)</h2>
+      <div class="info-bar"> Klik <b>Edit</b> untuk mengubah nama, <b>Hapus</b> untuk menghapus siswa.</div>
+      <div class="row" style="margin-bottom:10px;">
+        <select id="filterKelas" onchange="renderSiswa()">
+          <option value="">Semua Kelas</option>
+        </select>
+        <select id="filterJK" onchange="renderSiswa()">
+          <option value="">Semua JK</option>
+          <option value="L">Laki-laki</option>
+          <option value="P">Perempuan</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No</th><th>Nama</th><th>JK</th><th>Kelas</th><th>Aksi</th></tr></thead>
+          <tbody id="tabelSiswa"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB ABSEN -->
+  <div id="absen" class="tab">
+    <div class="card">
+      <h2>Tanggal Absensi</h2>
+      <input type="date" id="tglAbsen" onchange="renderAbsen()">
+      <div class="legend">
+        <span class="s-H">H Hadir</span>
+        <span class="s-I">I Izin</span>
+        <span class="s-S">S Sakit</span>
+        <span class="s-A">A Alpa</span>
+      </div>
+      <div class="row" style="margin-bottom:10px;">
+        <select id="filterKelasAbsen" onchange="renderAbsen()">
+          <option value="">Semua Kelas</option>
+        </select>
+      </div>
+      <div class="row">
+        <button class="btn btn-success" onclick="setAll('H')">✅ Semua Hadir</button>
+        <button class="btn btn-danger" onclick="resetHari()">🔄 Reset Hari Ini</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No</th><th>Nama</th><th>JK</th><th>Status</th></tr></thead>
+          <tbody id="tabelAbsen"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB REKAP -->
+  <div id="rekap" class="tab">
+    <div class="card">
+      <h2>Filter Rekap</h2>
+      <select id="periodeRekap" onchange="renderRekap()">
+        <option value="hari">Harian</option>
+        <option value="minggu">Mingguan</option>
+        <option value="bulan" selected>Bulanan</option>
+        <option value="semester">Semester</option>
+        <option value="all">Semua</option>
+      </select>
+      <input type="date" id="tglRekap" onchange="renderRekap()">
+      <select id="filterKelasRekap" onchange="renderRekap()">
+        <option value="">Semua Kelas</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="stat-box" id="statBox"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No</th><th>Nama</th><th>H</th><th>I</th><th>S</th><th>A</th><th>%</th></tr></thead>
+          <tbody id="tabelRekap"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB PDF -->
+  <div id="pdf" class="tab">
+    <div class="card">
+      <h2>📄 Cetak Laporan PDF</h2>
+      <input id="namaSekolah" placeholder="Nama Sekolah/Madrasah" value="MDTM">
+      <input id="namaKelasPdf" placeholder="Kelas (mis. 2A)">
+      <select id="periodePdf">
+        <option value="bulan" selected>Bulanan</option>
+        <option value="minggu">Mingguan</option>
+        <option value="semester">Semester</option>
+        <option value="all">Semua</option>
+      </select>
+      <input type="date" id="tglPdf">
+      <button class="btn" onclick="cetakPDF()" style="width:100%;margin-top:8px;">📄 Generate PDF</button>
+      <button class="btn btn-wa" onclick="kirimWA()" style="width:100%;margin-top:8px;">📱 Kirim via WhatsApp</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ===== SAFE STORAGE (fallback untuk environment sandboxed) =====
+const _ls = (() => {
+  try { localStorage.getItem('__t'); return localStorage; }
+  catch(e) { const m = {}; return { getItem: k => (k in m ? m[k] : null), setItem: (k,v) => { m[k] = String(v); }, removeItem: k => { delete m[k]; } }; }
+})();
+
+// ===== DATA AWAL SISWA (dari foto) =====
+const DATA_SISWA_AWAL = [
+  { nama: "Adam Faiz Al Arkhan", jk: "L" },
+  { nama: "Adna Azmya Adi Wiguna", jk: "P" },
+  { nama: "Aftar Rayyan Firmansyah", jk: "L" },
+  { nama: "Ainun Siti Nur Aisyah", jk: "P" },
+  { nama: "Almira Naira Ghina", jk: "P" },
+  { nama: "Anis Almahira", jk: "P" },
+  { nama: "Annasya Queena", jk: "P" },
+  { nama: "Arcyla Ghania Hidayat", jk: "P" },
+  { nama: "Ardan Rahsya Putra", jk: "L" },
+  { nama: "Arsil", jk: "L" },
+  { nama: "Asyahwa Carrisa Putri", jk: "P" },
+  { nama: "Ayra Nur'merrysa", jk: "P" },
+  { nama: "Azmi Daffa Arrasva", jk: "L" },
+  { nama: "Cantika Yumna", jk: "P" },
+  { nama: "Defran Anilian Rasman", jk: "L" },
+  { nama: "Ibnu Hakim Al-Fariq", jk: "L" },
+  { nama: "(Nama No.17 - silakan edit)", jk: "P" },
+  { nama: "Jihan Nur Andini", jk: "P" },
+  { nama: "Kanaya Indah Kirana", jk: "P" },
+  { nama: "(Nama No.20 - silakan edit)", jk: "L" },
+  { nama: "Muhamad Rafasya Alfarizqi", jk: "L" },
+  { nama: "Muhammad Azril Arifin Alrizqi", jk: "L" },
+  { nama: "Muhammad Fadly Nuron", jk: "L" },
+  { nama: "Muhammad Luthfi Zaidan", jk: "L" },
+  { nama: "Muhammad Raffi Argani", jk: "L" },
+  { nama: "Muhammad Septian Nur Alif", jk: "L" },
+  { nama: "Muhammad Thoharudin Nugr...", jk: "L" },
+  { nama: "Regita Aulia Rahma", jk: "P" },
+  { nama: "Salsabila Az Zahra", jk: "P" },
+  { nama: "Siti Aulia Nurlaila", jk: "P" },
+  { nama: "Tiara Zaina Ulfah", jk: "P" },
+  { nama: "Yuandi Alviansyah", jk: "L" },
+  { nama: "Yumna Arsylla Rahma", jk: "P" },
+  { nama: "Zildjani Nurfadillah", jk: "P" },
+  { nama: "Ziya Shakila Alula", jk: "P" }
+];
+
+let absensi = JSON.parse(_ls.getItem('absensi') || '{}');
+let siswa = JSON.parse(_ls.getItem('siswa') || 'null');
+if (!siswa) {
+  siswa = DATA_SISWA_AWAL.map((s, i) => ({ id: Date.now() + i, nama: s.nama, jk: s.jk, kelas: '' }));
+  save();
+}
+
+function save() {
+  _ls.setItem('siswa', JSON.stringify(siswa));
+  _ls.setItem('absensi', JSON.stringify(absensi));
+}
+
+function showTab(id, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'absen') renderAbsen();
+  if (id === 'rekap') renderRekap();
+}
+
+function simpanSiswa() {
+  const nama = document.getElementById('namaSiswa').value.trim();
+  const kelas = document.getElementById('kelasSiswa').value.trim();
+  const jk = document.getElementById('jkSiswa').value;
+  const editId = document.getElementById('editId').value;
+  if (!nama) return alert('Nama wajib diisi!');
+  
+  if (editId) {
+    const s = siswa.find(x => x.id == editId);
+    if (s) { s.nama = nama; s.kelas = kelas; s.jk = jk; }
+    alert('✅ Data siswa berhasil diupdate!');
+  } else {
+    siswa.push({ id: Date.now(), nama, kelas, jk });
+  }
+  save();
+  batalEdit();
+  renderSiswa(); updateKelasOptions();
+}
+
+function editSiswa(id) {
+  const s = siswa.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('editId').value = id;
+  document.getElementById('namaSiswa').value = s.nama;
+  document.getElementById('kelasSiswa').value = s.kelas || '';
+  document.getElementById('jkSiswa').value = s.jk || 'L';
+  document.getElementById('btnSimpan').textContent = '💾 Simpan Perubahan';
+  document.getElementById('btnBatal').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function batalEdit() {
+  document.getElementById('editId').value = '';
+  document.getElementById('namaSiswa').value = '';
+  document.getElementById('kelasSiswa').value = '';
+  document.getElementById('jkSiswa').value = 'L';
+  document.getElementById('btnSimpan').textContent = '+ Tambah Siswa';
+  document.getElementById('btnBatal').style.display = 'none';
+}
+
+function hapusSiswa(id) {
+  const s = siswa.find(x => x.id === id);
+  if (!confirm(`Hapus siswa "${s.nama}"? Data absensinya juga akan terhapus.`)) return;
+  siswa = siswa.filter(s => s.id !== id);
+  Object.keys(absensi).forEach(k => { if (k.endsWith('_' + id)) delete absensi[k]; });
+  save(); renderSiswa(); updateKelasOptions();
+}
+
+function renderSiswa() {
+  const filterKelas = document.getElementById('filterKelas').value;
+  const filterJK = document.getElementById('filterJK').value;
+  const list = siswa
+    .filter(s => (!filterKelas || s.kelas === filterKelas) && (!filterJK || s.jk === filterJK))
+    .sort((a,b) => a.nama.localeCompare(b.nama));
+  document.getElementById('jmlSiswa').textContent = list.length;
+  const tbody = document.getElementById('tabelSiswa');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Tidak ada siswa</td></tr>'; return; }
+  tbody.innerHTML = list.map((s,i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td><b>${s.nama}</b></td>
+      <td><span class="badge badge-${s.jk}">${s.jk}</span></td>
+      <td>${s.kelas || '-'}</td>
+      <td>
+        <button class="edit-btn" onclick="editSiswa(${s.id})">✏️</button>
+        <button class="del-btn" onclick="hapusSiswa(${s.id})">🗑️</button>
+      </td>
+    </tr>`).join('');
+}
+
+function updateKelasOptions() {
+  const kelasList = [...new Set(siswa.map(s => s.kelas).filter(Boolean))].sort();
+  ['filterKelas','filterKelasAbsen','filterKelasRekap'].forEach(id => {
+    const el = document.getElementById(id);
+    const val = el.value;
+    el.innerHTML = '<option value="">Semua Kelas</option>' +
+      kelasList.map(k => `<option value="${k}">${k}</option>`).join('');
+    el.value = val;
+  });
+}
+
+function renderAbsen() {
+  const tgl = document.getElementById('tglAbsen').value;
+  const filter = document.getElementById('filterKelasAbsen').value;
+  const list = siswa
+    .filter(s => !filter || s.kelas === filter)
+    .sort((a,b) => a.nama.localeCompare(b.nama));
+  const tbody = document.getElementById('tabelAbsen');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">Tidak ada siswa</td></tr>'; return; }
+  tbody.innerHTML = list.map((s,i) => {
+    const key = tgl + '_' + s.id;
+    const st = absensi[key] || '';
+    const mkBtn = (code) => `<button class="status-btn s-${code} ${st===code?'selected':''}" onclick="setStatus('${s.id}','${code}')">${code}</button>`;
+    return `
+      <tr>
+        <td>${i+1}</td>
+        <td><b>${s.nama}</b></td>
+        <td><span class="badge badge-${s.jk}">${s.jk}</span></td>
+        <td><div class="status-btns">${mkBtn('H')}${mkBtn('I')}${mkBtn('S')}${mkBtn('A')}</div></td>
+      </tr>`;
+  }).join('');
+}
+
+function setStatus(id, code) {
+  const tgl = document.getElementById('tglAbsen').value;
+  if (!tgl) return alert('Pilih tanggal dulu!');
+  const key = tgl + '_' + id;
+  if (absensi[key] === code) { delete absensi[key]; } else { absensi[key] = code; }
+  save(); renderAbsen();
+}
+
+function setAll(code) {
+  const tgl = document.getElementById('tglAbsen').value;
+  if (!tgl) return alert('Pilih tanggal dulu!');
+  const filter = document.getElementById('filterKelasAbsen').value;
+  siswa.filter(s => !filter || s.kelas === filter).forEach(s => {
+    absensi[tgl + '_' + s.id] = code;
+  });
+  save(); renderAbsen();
+}
+
+function resetHari() {
+  const tgl = document.getElementById('tglAbsen').value;
+  if (!tgl) return alert('Pilih tanggal dulu!');
+  if (!confirm(`Hapus semua absensi pada ${tgl}?`)) return;
+  Object.keys(absensi).forEach(k => { if (k.startsWith(tgl + '_')) delete absensi[k]; });
+  save(); renderAbsen();
+}
+
+function hitungRekap(listSiswa, tglMulai, tglAkhir) {
+  return listSiswa.map(s => {
+    let H=0,I=0,S=0,A=0,total=0;
+    Object.keys(absensi).forEach(k => {
+      const parts = k.split('_');
+      const tgl = parts[0];
+      const id = parts.slice(1).join('_');
+      if (String(id) !== String(s.id)) return;
+      if (tglMulai && tgl < tglMulai) return;
+      if (tglAkhir && tgl > tglAkhir) return;
+      const st = absensi[k];
+      if (st==='H') H++; else if (st==='I') I++; else if (st==='S') S++; else if (st==='A') A++;
+      total++;
+    });
+    const pct = total ? Math.round(H/total*100) : 0;
+    return { ...s, H, I, S, A, total, pct };
+  });
+}
+
+function getRange(periode, tgl) {
+  if (!tgl) return { mulai: null, akhir: null, label: 'Semua Waktu' };
+  const d = new Date(tgl);
+  let mulai, akhir, label;
+  if (periode === 'hari') {
+    mulai = akhir = tgl;
+    label = d.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  } else if (periode === 'minggu') {
+    const day = d.getDay();
+    const sen = new Date(d); sen.setDate(d.getDate() - ((day+6)%7));
+    const min = new Date(sen); min.setDate(sen.getDate()+6);
+    mulai = fmt(sen); akhir = fmt(min);
+    label = `Minggu ${fmt(sen)} s/d ${fmt(min)}`;
+  } else if (periode === 'bulan') {
+    mulai = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;
+    const last = new Date(d.getFullYear(), d.getMonth()+1, 0);
+    akhir = fmt(last);
+    label = d.toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+  } else if (periode === 'semester') {
+    const m = d.getMonth();
+    if (m < 6) { mulai = `${d.getFullYear()}-01-01`; akhir = `${d.getFullYear()}-06-30`; label = `Semester Genap ${d.getFullYear()}`; }
+    else { mulai = `${d.getFullYear()}-07-01`; akhir = `${d.getFullYear()}-12-31`; label = `Semester Ganjil ${d.getFullYear()}`; }
+  } else { mulai = null; akhir = null; label = 'Semua Waktu'; }
+  return { mulai, akhir, label };
+}
+
+function fmt(d) { return d.toISOString().split('T')[0]; }
+
+function renderRekap() {
+  const periode = document.getElementById('periodeRekap').value;
+  const tgl = document.getElementById('tglRekap').value;
+  const filter = document.getElementById('filterKelasRekap').value;
+  const list = siswa.filter(s => !filter || s.kelas === filter)
+    .sort((a,b) => a.nama.localeCompare(b.nama));
+  const { mulai, akhir } = getRange(periode, tgl);
+  const data = hitungRekap(list, mulai, akhir);
+  
+  const totalH = data.reduce((a,b)=>a+b.H,0);
+  const totalI = data.reduce((a,b)=>a+b.I,0);
+  const totalS = data.reduce((a,b)=>a+b.S,0);
+  const totalA = data.reduce((a,b)=>a+b.A,0);
+  document.getElementById('statBox').innerHTML = `
+    <div class="stat"><div class="num" style="color:#10b981">${totalH}</div><div class="lbl">Total Hadir</div></div>
+    <div class="stat"><div class="num" style="color:#3b82f6">${totalI}</div><div class="lbl">Total Izin</div></div>
+    <div class="stat"><div class="num" style="color:#f59e0b">${totalS}</div><div class="lbl">Total Sakit</div></div>
+    <div class="stat"><div class="num" style="color:#ef4444">${totalA}</div><div class="lbl">Total Alpa</div></div>
+  `;
+  
+  const tbody = document.getElementById('tabelRekap');
+  if (!data.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Tidak ada data</td></tr>'; return; }
+  tbody.innerHTML = data.map((s,i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td><b>${s.nama}</b></td>
+      <td style="color:#10b981;font-weight:600">${s.H}</td>
+      <td style="color:#3b82f6;font-weight:600">${s.I}</td>
+      <td style="color:#f59e0b;font-weight:600">${s.S}</td>
+      <td style="color:#ef4444;font-weight:600">${s.A}</td>
+      <td><b>${s.pct}%</b></td>
+    </tr>`).join('');
+}
+
+function cetakPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const sekolah = document.getElementById('namaSekolah').value || 'MDTM';
+  const kelas = document.getElementById('namaKelasPdf').value;
+  const periode = document.getElementById('periodePdf').value;
+  const tgl = document.getElementById('tglPdf').value;
+  const { mulai, akhir, label } = getRange(periode, tgl);
+  
+  const list = siswa.filter(s => !kelas || s.kelas === kelas)
+    .sort((a,b) => a.nama.localeCompare(b.nama));
+  const data = hitungRekap(list, mulai, akhir);
+  
+  const jmlL = data.filter(s => s.jk === 'L').length;
+  const jmlP = data.filter(s => s.jk === 'P').length;
+  
+  doc.setFontSize(14); doc.text('REKAPITULASI ABSENSI SISWA', 105, 15, {align:'center'});
+  doc.setFontSize(11);
+  doc.text(`Nama Madrasah : ${sekolah}`, 14, 25);
+  doc.text(`Kelas         : ${kelas || 'Semua Kelas'}`, 14, 32);
+  doc.text(`Periode       : ${label}`, 14, 39);
+  doc.text(`Laki-laki     : ${jmlL}    Perempuan : ${jmlP}`, 14, 46);
+  
+  const rows = data.map((s,i) => [i+1, s.nama, s.jk, s.H, s.I, s.S, s.A, s.pct+'%']);
+  doc.autoTable({
+    startY: 52,
+    head: [['No','Nama','JK','Hadir','Izin','Sakit','Alpa','Kehadiran']],
+    body: rows,
+    theme: 'grid',
+    headStyles: { fillColor: [15,118,110] },
+    styles: { fontSize: 9 }
+  });
+  
+  const finalY = doc.lastAutoTable.finalY + 8;
+  doc.text(`Jumlah Siswa : ${data.length}`, 14, finalY);
+  
+  doc.save(`Rekap_Absensi_${kelas||'Semua'}_${label.replace(/\s/g,'_')}.pdf`);
+}
+
+async function kirimWA() {
+  const sekolah = document.getElementById('namaSekolah').value || 'MDTM';
+  const kelas = document.getElementById('namaKelasPdf').value || 'Semua Kelas';
+  const periode = document.getElementById('periodePdf').value;
+  const tgl = document.getElementById('tglPdf').value;
+  const { mulai, akhir, label } = getRange(periode, tgl);
+  const list = siswa.filter(s => !kelas || s.kelas === kelas)
+    .sort((a,b) => a.nama.localeCompare(b.nama));
+  const data = hitungRekap(list, mulai, akhir);
+  
+  const jmlL = data.filter(s => s.jk === 'L').length;
+  const jmlP = data.filter(s => s.jk === 'P').length;
+  
+  let txt = `*REKAP ABSENSI SISWA*\n`;
+  txt += `🏫 ${sekolah}\n`;
+  txt += `📚 Kelas: ${kelas}\n`;
+  txt += ` ${label}\n`;
+  txt += `👦 L: ${jmlL}   P: ${jmlP}\n\n`;
+  data.forEach((s,i) => {
+    txt += `${i+1}. *${s.nama}* (${s.jk})\n   H:${s.H} I:${s.I} S:${s.S} A:${s.A} (${s.pct}%)\n`;
+  });
+  txt += `\nJumlah Siswa: ${data.length}`;
+  
+  if (navigator.share) {
+    try { await navigator.share({ title:'Rekap Absensi', text: txt }); return; } catch(e){}
+  }
+  window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, '_blank');
+}
+
+document.getElementById('tanggalHariIni').textContent = 
+  new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+document.getElementById('tglAbsen').value = fmt(new Date());
+document.getElementById('tglRekap').value = fmt(new Date());
+document.getElementById('tglPdf').value = fmt(new Date());
+renderSiswa(); updateKelasOptions();
+</script>
+</body>
+</html>
